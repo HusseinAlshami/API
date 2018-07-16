@@ -1,0 +1,507 @@
+<?php 
+ //Constants for database connection
+ define('DB_HOST','localhost');
+ define('DB_USER','id4509152_towing');
+ define('DB_PASS','hnhpkp1984');
+ define('DB_NAME','id4509152_towingtest');
+ 
+ //We will upload files to this folder
+ //So one thing don't forget, also create a folder named uploads inside your project folder i.e. towingLogin folder
+ define('UPLOAD_PATH', 'uploads/');
+ 
+ //connecting to database 
+ $conn = new mysqli(DB_HOST,DB_USER,DB_PASS,DB_NAME) or die('Unable to connect');
+ 
+ //An array to display the response
+ $response = array();
+ 
+ //getting server ip for building image url 
+ $server_ip = 'towingtruckes.000webhostapp.com';
+ 
+ //if the call is an api call 
+ if(isset($_GET['apicall'])){
+ 
+ //switching the api call 
+ switch($_GET['apicall']){
+ 
+ //if it is an signup call we will upload the user's image and information
+ case 'signupwithimage':
+ 
+ //first confirming that we have the image and tags in the request parameter
+ if(isset($_FILES['pic']['name']) && isset($_POST['user_phone'])){
+	 
+ $full_name = $_POST['full_name'];
+ $truck_type = $_POST['truck_type'];
+ $user_phone = $_POST['user_phone'];
+ $user_email = $_POST['user_email'];
+ $useraddress = $_POST['useraddress'];
+ $worktime = $_POST['worktime'];
+ $user_password = $_POST['user_password'];
+ $likes = 0;
+ 
+ //uploading file and storing it to database as well 
+ try{
+	 
+	$stmt = $conn->prepare("SELECT id FROM TowingTable WHERE user_phone = ?");
+		$stmt->bind_param("s", $user_phone);
+		$stmt->execute();
+		$stmt->store_result();
+					
+			if($stmt->num_rows > 0){
+				$response['error'] = true;
+				$response['message'] = false;
+				$stmt->close();
+				}else{
+	 
+    move_uploaded_file($_FILES['pic']['tmp_name'], UPLOAD_PATH . $_FILES['pic']['name']);
+    
+    $stmt = $conn->prepare("INSERT INTO TowingTable (full_name,truck_type,user_phone,user_email,useraddress,worktime,user_password,likes,imageUrl) VALUES (?,?,?,?,?,?,?,?,?)");
+    $stmt->bind_param("sssssssss", $full_name, $truck_type, $user_phone, $user_email, $useraddress,$worktime, $user_password,$likes, $_FILES['pic']['name']);
+    
+         if($stmt->execute()){
+			 $stmt = $conn->prepare("SELECT id, full_name,truck_type,user_phone,user_email,useraddress,worktime,user_password,likes,imageUrl FROM TowingTable WHERE user_phone = ?"); 
+							$stmt->bind_param("s",$user_phone);
+							$stmt->execute();
+							$stmt->bind_result($id, $full_name,$car_type, $user_phone,$user_email,$useraddress,$worktime,$user_password,$likes,$imageUrl);
+							$stmt->fetch();
+							
+							$loggedinuser = array();
+							$loggedinuser['id'] = $id;
+							$loggedinuser['full_name'] = $full_name; 
+							$loggedinuser['truck_type'] = $truck_type; 
+							$loggedinuser['user_phone'] = $user_phone; 
+							$loggedinuser['user_email'] = $user_email; 
+							$loggedinuser['useraddress'] = $useraddress; 
+							$loggedinuser['worktime'] = $worktime;
+							$loggedinuser['user_password'] = $user_password; 
+							$loggedinuser['likes'] = $likes;
+							$loggedinuser['imageUrl'] = 'http://' . $server_ip . '/towingLogin/'. UPLOAD_PATH . $imageUrl; 
+		
+						   $stmt->close();
+                           $response['error'] = false;
+                           //$response['message'] = 'User registered successfully';
+						   $response['loggedinuser'] = $loggedinuser;
+             }else{
+                throw new Exception("Could not upload files");
+                  }
+				    }
+ }catch(Exception $e){
+            $response['error'] = true;
+            $response['message'] = true;
+ }
+ 
+ }
+ 
+ break;
+ 
+  //if it is an signup call we will upload the user's information
+ case 'signup':
+ 
+ //first confirming that we have the image and tags in the request parameter
+ if(isset($_POST['full_name']) && isset($_POST['user_phone'])){
+	 
+ $full_name = $_POST['full_name'];
+ $truck_type = $_POST['truck_type'];
+ $user_phone = $_POST['user_phone'];
+ $user_email = $_POST['user_email'];
+ $useraddress = $_POST['useraddress'];
+ $worktime = $_POST['worktime'];
+ $user_password = $_POST['user_password'];
+ $likes = 0;
+ //uploading file and storing it to database as well 
+ try{
+	 
+	$stmt = $conn->prepare("SELECT id FROM TowingTable WHERE user_phone = ?");
+		$stmt->bind_param("s", $user_phone);
+		$stmt->execute();
+		$stmt->store_result();
+					
+			if($stmt->num_rows > 0){
+				$response['error'] = true;
+				$response['message'] = false;
+				$stmt->close();
+				}else{
+	 
+    $stmt = $conn->prepare("INSERT INTO TowingTable (full_name,truck_type,user_phone,user_email,useraddress,worktime,user_password,likes) VALUES (?,?,?,?,?,?,?,?)");
+    $stmt->bind_param("ssssssss", $full_name, $truck_type, $user_phone, $user_email, $useraddress, $worktime, $user_password, $likes);
+         if($stmt->execute()){
+ 
+			 $stmt = $conn->prepare("SELECT id, full_name,truck_type,user_phone,user_email,useraddress,worktime,user_password,likes FROM TowingTable WHERE user_phone = ?"); 
+							$stmt->bind_param("s",$user_phone);
+							$stmt->execute();
+							$stmt->bind_result($id, $full_name,$car_type, $user_phone,$user_email,$useraddress,$worktime,$user_password,$likes);
+							$stmt->fetch();
+							
+							$loggedinuser = array();
+							$loggedinuser['id'] = $id;
+							$loggedinuser['full_name'] = $full_name; 
+							$loggedinuser['truck_type'] = $truck_type; 
+							$loggedinuser['user_phone'] = $user_phone; 
+							$loggedinuser['user_email'] = $user_email; 
+							$loggedinuser['useraddress'] = $useraddress; 
+							$loggedinuser['worktime'] = $worktime;
+							$loggedinuser['user_password'] = $user_password; 
+							$loggedinuser['likes'] = $likes;
+							
+						   $stmt->close();
+                           $response['error'] = false;
+                           //$response['message'] = 'User registered successfully';
+						   $response['loggedinuser'] = $loggedinuser;
+             }else{
+                throw new Exception("Could not upload files");
+                  }
+				    }
+ }catch(Exception $e){
+            $response['error'] = true;
+            $response['message'] = true;
+ }
+ }
+ 
+ break;
+ 
+ 
+  //if it is an update user data call we will upload the user's image and information
+ case 'updateuserwithimage':
+     
+ //first confirming that we have the image and tags in the request parameter
+ if(isset($_FILES['pic']['name']) && isset($_POST['user_phone'])){
+	 
+ $full_name = $_POST['full_name'];
+ $truck_type = $_POST['truck_type'];
+ $user_phone = $_POST['user_phone'];
+ $user_new_phone = $_POST['user_new_phone'];	
+ $user_email = $_POST['user_email'];
+ $useraddress = $_POST['useraddress'];
+ $worktime = $_POST['worktime'];
+ $user_password = $_POST['user_password'];
+ 
+ //uploading file and storing it to database as well 
+ try{
+     
+ move_uploaded_file($_FILES['pic']['tmp_name'], UPLOAD_PATH . $_FILES['pic']['name']);
+ 
+ $ImageURL = $_FILES['pic']['name'];
+ 
+ if($user_phone == $user_new_phone){
+ 
+ $stmt = $conn->prepare("UPDATE TowingTable SET full_name= '$full_name', truck_type= '$truck_type', user_phone = '$user_phone', user_email = '$user_email',useraddress = '$useraddress', worktime = '$worktime', user_password = '$user_password',imageUrl = '$ImageURL'  WHERE user_phone = $user_phone");
+ }else {
+ $stmt = $conn->prepare("UPDATE TowingTable SET full_name= '$full_name', truck_type= '$truck_type', user_phone = '$user_new_phone', user_email = '$user_email',useraddress = '$useraddress', worktime = '$worktime', user_password = '$user_password',imageUrl = '$ImageURL'  WHERE user_phone = $user_phone");	 
+ } 
+    
+         if($stmt->execute()){
+ 
+						   $stmt->close();
+                           $response['error'] = false;
+                          // $response['message'] = 'Data updated successfully';
+             }else{
+                throw new Exception("Could not update data");
+                  }
+				
+ }catch(Exception $e){
+            $response['error'] = true;
+            $response['message'] = 'Database error';
+ }
+ 
+ }else{
+ $response['error'] = true;
+ $response['message'] = "Required params not available";
+ }
+ 
+ break;
+ 
+ 
+  //if it is an update user data call we will upload the user's information
+ case 'updateuser':
+     
+ //first confirming that we have the image and tags in the request parameter
+ if(isset($_POST['user_phone'])){
+	
+ //$UserID= $_POST['UserID'];	 
+ $full_name = $_POST['full_name'];
+ $truck_type = $_POST['truck_type'];
+ $user_phone = $_POST['user_phone'];
+ $user_new_phone = $_POST['user_new_phone'];
+ $user_email = $_POST['user_email'];
+ $useraddress = $_POST['useraddress'];
+ $worktime = $_POST['worktime'];
+ $user_password = $_POST['user_password'];
+ $ImageURL = '';
+ 
+ //uploading file and storing it to database as well 
+ try{ 
+ 
+  if($user_phone == $user_new_phone){
+ 
+ $stmt = $conn->prepare("UPDATE TowingTable SET full_name= '$full_name', truck_type= '$truck_type', user_phone = '$user_phone', user_email = '$user_email',useraddress = '$useraddress', worktime = '$worktime', user_password = '$user_password',imageUrl = '$ImageURL'  WHERE user_phone = $user_phone");
+ }else {
+ $stmt = $conn->prepare("UPDATE TowingTable SET full_name= '$full_name', truck_type= '$truck_type', user_phone = '$user_new_phone', user_email = '$user_email',useraddress = '$useraddress', worktime = '$worktime', user_password = '$user_password',imageUrl = '$ImageURL'  WHERE user_phone = $user_phone");	 
+ }
+ 
+ //$stmt = $conn->prepare("UPDATE TowingTable SET full_name= '$full_name', truck_type= '$truck_type', user_phone = '$user_phone', user_email = '$user_email',useraddress = '$useraddress', worktime = '$worktime', user_password = '$user_password',imageUrl = '$ImageURL'  WHERE id = $UserID");
+       
+	   if($stmt->execute()){
+ 
+						   $stmt->close();
+                           $response['error'] = false;
+                           //$response['message'] = 'Data updated successfully';
+             }else{
+                throw new Exception("Could not update data");
+                  }
+				
+ }catch(Exception $e){
+            $response['error'] = true;
+            $response['message'] = 'Database error';
+ }
+ 
+ }else{
+ $response['error'] = true;
+ $response['message'] = "Required params not available";
+ }
+ 
+ break;
+ 
+ 
+ //if it is an signin call we will downpload the user's image and information
+ case 'signin':
+     //first confirming that we have the user's phone number and password in the request parameter
+      if(isset($_GET['userphone']) && isset($_GET['password'])){
+          
+ $user_phone = $_GET['userphone'];
+ $user_password = $_GET['password'];
+ 
+ try{
+        $stmt = $conn->prepare("SELECT id, full_name,user_phone,user_password FROM TowingTable WHERE user_phone = ? AND user_password = ?"); 
+							
+							$stmt->bind_param("ss",$user_phone, $user_password);
+							$stmt->execute();
+							$stmt->store_result();
+							
+						if($stmt->num_rows > 0){
+						     $stmt->bind_result($id, $full_name, $user_phone, $user_password);
+					         $stmt->fetch();
+						
+							$loggedinuser = array();
+							$loggedinuser['id'] = $id;
+							$loggedinuser['full_name'] = $full_name; 
+							$loggedinuser['user_phone'] = $user_phone; 							
+							$loggedinuser['user_password'] = $user_password;
+							
+						$stmt->close();
+						$response['error'] = false; 
+						$response['loggedinuser'] = $loggedinuser; 
+					}else{
+						$response['error'] = true; 
+						$response['message'] = 'Invalid Phone Number or Password, Please Try Again';
+					}
+					
+ }catch(Exception $e){
+            $response['error'] = true;
+            $response['message'] = 'Database error';
+                    }	
+      }
+     
+      break;
+      
+      
+            
+case 'deleteuser':
+          
+     //first confirming that we have the user's phone number and password in the request parameter
+      if(isset($_POST['UserPhone'])){
+          
+ $UserPhone= $_POST['UserPhone'];
+ 
+ try{
+        $stmt = $conn->prepare("DELETE FROM TowingTable WHERE user_phone = ?");
+		$stmt->bind_param("s", $UserPhone);
+							
+						if($stmt->execute()){
+								
+						$stmt->close();
+						$response['error'] = false; 
+					//	$response['message'] = 'User deleted Successfully'; 
+					}else{
+						$response['error'] = true; 
+						$response['message'] = 'Invalid User phone, Please Try Again';
+					}
+					
+ }catch(Exception $e){
+            $response['error'] = true;
+            $response['message'] = 'Database error';
+                    }	
+      }
+     
+      break;
+      
+case 'getoneuserlikes':
+          
+     //first confirming that we have the user's Phone in the request parameter
+      if(isset($_GET['UserPhone'])){
+          
+ $UserPhone= $_GET['UserPhone'];
+ 
+ try{
+        $stmt = $conn->prepare("SELECT likes FROM TowingTable WHERE user_phone = ?");
+		$stmt->bind_param("s", $UserPhone);
+		$stmt->execute();
+		$stmt->store_result();
+							
+						if($stmt->num_rows > 0){
+						     $stmt->bind_result($likes);
+					         $stmt->fetch();
+					         
+						$stmt->close();
+						$response['error'] = false; 
+						$response['message'] = 'Likes Reteived Successfully'; 
+						$response['likes'] = $likes; 
+					}else{
+						$response['error'] = false; 
+						$response['message'] = 'Invalid User Phone, Please Try Again';
+					}
+					
+ }catch(Exception $e){
+            $response['error'] = true;
+            $response['message'] = 'Database error';
+                    }	
+      }
+     
+      break;
+ 
+case 'setoneuserlikes':
+          
+     //first confirming that we have the user's ID in the request parameter
+      if(isset($_POST['UserPhone'])){
+          
+ $UserPhone= $_POST['UserPhone'];
+ $likes = $_POST['setlikes'];
+ 
+ try{
+        $stmt = $conn->prepare("UPDATE TowingTable SET likes = '$likes' WHERE user_phone = ?");
+		$stmt->bind_param("s", $UserPhone);
+		
+		if($stmt->execute()){
+ 
+						   $stmt->close();
+                          // $response['error'] = false;
+                          //$response['message'] = 'Likes set successfully';
+             }else{
+                throw new Exception("Could not update likes");
+                  }
+					
+ }catch(Exception $e){
+           // $response['error'] = true;
+            $response['message'] = 'Database error';
+                    }	
+      }
+     
+      break; 
+      
+case 'getoneuser':
+          
+     //first confirming that we have the user's phone number and password in the request parameter
+      if(isset($_POST['UserPhone'])){
+          
+ $UserPhone= $_POST['UserPhone'];
+ 
+ try{
+		$stmt = $conn->prepare("SELECT * FROM TowingTable WHERE user_phone = $UserPhone");
+	//	$stmt->bind_param("s", $UserPhone);
+		$stmt->execute();
+		$stmt->store_result();
+							
+						if($stmt->num_rows > 0){
+						     $stmt->bind_result($id, $full_name,$truck_type,$user_phone,$user_email,$useraddress,$worktime,$user_password,$likes,$imageUrl);
+					         $stmt->fetch();
+					         
+                         	$loggedinuser = array();
+							$loggedinuser['id'] = $id;
+							$loggedinuser['full_name'] = $full_name; 
+							$loggedinuser['truck_type'] = $truck_type; 
+							$loggedinuser['user_phone'] = $user_phone; 
+							$loggedinuser['user_email'] = $user_email; 
+							$loggedinuser['useraddress'] = $useraddress; 
+							$loggedinuser['worktime'] = $worktime; 
+							$loggedinuser['user_password'] = $user_password; 
+							$loggedinuser['likes'] = $likes; 
+							$loggedinuser['imageUrl'] = 'http://' . $server_ip . '/towingLogin/'. UPLOAD_PATH . $imageUrl; 
+								
+						$stmt->close();
+						$response['error'] = false; 
+						$response['message'] = 'User Reteived Successfully'; 
+						$response['loggedinuser'] = $loggedinuser; 
+					}else{
+						$response['error'] = false; 
+						$response['message'] = 'Invalid User Phone, Please Try Again';
+					}
+					
+ }catch(Exception $e){
+            $response['error'] = true;
+            $response['message'] = 'Database error';
+                    }	
+      }
+     
+      break;
+      
+    
+ //in this call we will fetch all the users data
+ case 'getallusers':
+ 
+ /*Get the id of the last visible item in the RecyclerView from the request and store it in a variable. For            the first request id will be zero.*/
+//  if(isset($_POST['UserID'])){
+          
+// $UserID= $_POST['UserID'];
+//	$id = $_POST["UserID"];
+ 
+ //query to get images from database
+// $stmt = $conn->prepare("SELECT id,full_name,truck_type,user_phone,user_email,useraddress,worktime,user_password,likes,imageUrl FROM TowingTable where id between ($id+1) and ($id+10)");
+ 
+ //query to get images from database
+ $stmt = $conn->prepare("SELECT id,full_name,truck_type,user_phone,user_email,useraddress,worktime,user_password,likes,imageUrl FROM TowingTable");
+ 
+// executing the query 
+ $stmt->execute();
+ $stmt->bind_result($id, $full_name,$truck_type, $user_phone,$user_email,$useraddress,$worktime,$user_password,$likes,$imageUrl);
+ 
+ $users = array();
+ 
+ //fetching all the images from database
+ //and pushing it to array 
+ while($stmt->fetch()){
+ $temp = array();
+ $temp['id'] = $id; 
+ $temp['full_name'] = $full_name; 
+ $temp['truck_type'] = $truck_type; 
+ $temp['user_phone'] = $user_phone; 
+ $temp['user_email'] = $user_email;  
+ $temp['useraddress'] = $useraddress; 
+ $temp['worktime'] = $worktime; 
+ $temp['user_password'] = $user_password;
+ $temp['likes'] = $likes; 
+ $temp['imageUrl'] = 'http://' . $server_ip . '/towingLogin/'. UPLOAD_PATH . $imageUrl; 
+ 
+ array_push($users, $temp);
+ }
+ 
+ //pushing the array in response 
+ $response['error'] = false;
+ $response['users'] = $users; 
+ break; 
+ 
+ default: 
+ $response['error'] = true;
+ $response['message'] = 'Invalid api call';
+ }
+ 
+ }else{
+ header("HTTP/1.0 404 Not Found");
+ echo "<h1>404 Not Found</h1>";
+ echo "The page that you have requested could not be found.";
+ exit();
+ }
+ 
+ //displaying the response in json 
+ header('Content-Type: application/json');
+ echo json_encode($response);
+ $conn->close();
+ ?>
